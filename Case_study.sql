@@ -75,17 +75,30 @@ create table np_base_one as
 select 
    payment_date,
    funding_source || '-' || shopper_interaction || '-' || mcc concat_string_2,
+    avs_supplied,
    interchange_amount,
    funding_source || '-' || shopper_interaction || '-' || mcc ||'-'|| interchange_amount  as concat_string, 
    sum(interchange_amount) total_interchange, 
    count(distinct txn_reference) total_txns
 from np_temp_format
-group by 1,2,3,4
+group by 1,2,3,4,5
 
+
+select 
+   funding_source,
+   avs_supplied,
+   interchange_amount,
+   sum(interchange_amount) total_interchange, 
+   count(distinct txn_reference) total_txns
+from 
+   np_temp_format
+group by 1,2,3
+;   
 ---export to sheet and python as cohort_data
 select 
   payment_date,
   concat_string_2,
+  avs_supplied,
   interchange_amount,
   total_interchange, 
   total_txns
@@ -165,3 +178,27 @@ sum(total_interchange) total_interchange_b,
 sum(total_txns) txns_b
 from np_base_one 
 where payment_date > (select date(max(payment_date),'-5 days') from np_base_one);
+
+----
+
+select min(payment_date), date(max(payment_date),  from np_temp_format;
+
+
+select * from np_temp_format;
+
+------------
+select 
+   fin.concat_string, 
+   count(distinct bin) distinct_credits, 
+   count(distinct case when txns > 1 then bin end) distinct_credits_rec,
+   sum(txns) txns, 
+   sum(case when txns > 1 then txns end) recurring_txns
+from 
+(select 
+    funding_source || '-' || shopper_interaction || '-' || mcc concat_string, 
+    bin, 
+    count(distinct txn_reference) txns 
+from np_temp_format
+group by 1,2)
+as fin 
+group by 1;

@@ -166,7 +166,89 @@ group by 1,2
 order by 1,2
 ;
 
-----
+----PYTHON 
+
+
+import pandas as pd
+import numpy as np
+import plotly as pl
+import plotly.express as px
+import streamlit as st
+import math as mt
+import sqlite3
+import matplotlib.pyplot as plt
+import warnings
+import seaborn as sns
+from operator import attrgetter
+import matplotlib.colors as mcolors
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+
+data = pd.read_csv ('/Users/niharpatel/Desktop/Cleaned data.csv')   
+data2 = pd.read_csv ('/Users/niharpatel/Desktop/cohort_data.csv')   
+df = pd.DataFrame(data)
+df2 = pd.DataFrame(data2)
+
+df['bin'] = df["bin"].map(str)
+df[["txn_reference","bin","shopper_interaction","cvc_supplied","avs_supplied","interchange_amount"]].describe(include="all")
+
+##getting different mean and quartile values
+df.describe(include="all")
+
+n_trans2=df.groupby('payment_date').agg(sum_inter = ('interchange_amount','sum'),
+                                        count_txn = ('txn_reference', 'count')).reset_index()
+
+n_trans2['average'] = n_trans2['sum_inter']/n_trans2['count_txn']
+
+
+n_trans_nump = n_trans2.to_numpy()
+n_trans_series = n_trans2.squeeze()
+resultList = list(n_trans_dict.items())
+n_trans_dict = n_trans2.to_dict()
+
+------line chart
+
+fig = make_subplots(specs=[[{"secondary_y": True}]])
+
+fig.add_trace(
+    go.Scatter( x=n_trans_series["payment_date"], y=n_trans_series["sum_inter"], name="yaxis data"),
+    secondary_y=False,
+)
+
+fig.add_trace(
+    go.Scatter(x = n_trans_series["payment_date"], y=n_trans_series["average"], name="yaxis2 data"),
+    secondary_y=True,
+)
+--------COHORT ANALYSIS
+
+df['combined'] = df['funding_source'] + '_' + df['shopper_interaction'] + '_' + df['mcc'].astype(str)
+
+n_trans3=df.groupby(['payment_date','combined']).agg(sum_inter = ('interchange_amount','sum'),
+                                        count_txn = ('txn_reference', 'count')).reset_index()
+
+fig = px.line(n_trans3, x='payment_date', y='sum_inter', color='combined', markers=True)
+fig.show()
+
+
+##Trying it by all different variables
+##df.groupby(['payment_date','funding_source']).aggregate(sum_inter = ('interchange_amount','sum')).reset_index()
+##df.groupby(['payment_date','shopper_interaction']).aggregate(sum_inter = ('interchange_amount','sum')).reset_index()
+##df.groupby(['payment_date','mcc']).aggregate(sum_inter = ('interchange_amount','sum')).reset_index()
+##df.groupby(['payment_date','cvc_supplied']).aggregate(sum_inter = ('interchange_amount','sum')).reset_index()
+##df.groupby(['payment_date','avs_supplied']).aggregate(sum_inter = ('interchange_amount','sum')).reset_index()
+##df.groupby(['payment_date','interchange_amount']).aggregate(sum_inter = ('interchange_amount','sum')).reset_index()
+
+
+
+
+n_trans2 = df.groupby(['payment_date','avs_supplied']).aggregate(sum_inter = ('interchange_amount','sum')).reset_index()
+fig = px.bar(n_trans2, x="payment_date", y="sum_inter", color="avs_supplied", title="cohort")
+fig.show()
+
+
+
+
+----------------------------
 select 
 sum(total_interchange) total_interchange_a, 
 sum(total_txns) txns_a 
@@ -186,7 +268,7 @@ select min(payment_date), date(max(payment_date),  from np_temp_format;
 
 select * from np_temp_format;
 
-------------
+------------PURCHASE FREQUENCY
 select 
    fin.concat_string, 
    count(distinct bin) distinct_credits, 
